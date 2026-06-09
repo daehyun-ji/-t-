@@ -125,7 +125,7 @@
         fullConversation += `[user]: ${promptText}`;
 
         // 🚨 쿼리스트링 규격을 정확히 맞춘 URL 조립
-        const chatUrl = `${APPS_SCRIPT_URL}?type=chat&question=${encodeURIComponent(fullConversation)}`;
+        const chatUrl = `https://script.google.com/macros/s/AKfycby3E4IUDpUOwiiVKFtdKi_fFgJSAJZYo49Tl8smLcPDDbwSy03N2AnEEirSSSvdguFqQA/exec`;
         const chatResponse = await fetch(chatUrl);
         const chatData = await chatResponse.json();
         
