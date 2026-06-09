@@ -3,152 +3,365 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI 압박 면접관 - 개인화 서비스</title>
+  <title>실전 AI 압박 면접관 & 피드백 시스템</title>
+  
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFirestore, collection, addDoc, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // ⚠️ 1. 여기에 본인의 Firebase 설정값을 붙여넣으세요!
+    // ⚠️ [설정 1] 본인의 Firebase 웹 앱 구성 요소를 여기에 붙여넣으세요!
     const firebaseConfig = {
       apiKey: "AIzaSyDicqUuRCRdxuQQtmLeYPEpOIQAIN7sYZ8",
       authDomain: "bigdata-real.firebaseapp.com",
-      databaseURL: "https://bigdata-real-default-rtdb.firebaseio.com",
       projectId: "bigdata-real",
       storageBucket: "bigdata-real.firebasestorage.app",
       messagingSenderId: "207202321481",
-      appId: "1:207202321481:web:6b1e8e4aa447599a20eb98",
-      measurementId: "G-FJZPE2XQFC"
+      appId: "1:207202321481:web:6b1e8e4aa447599a20eb98"
     };
 
+    // Firebase 초기화
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // ⚠️ 2. 본인의 앱스 스크립트 URL
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzYjSkB3Tfxgh4cCWjyKTNX3ymcZvnlboIRmoOCfHipytfoxDdcsRJ8wuMy-V9UJPBd/exec';
+    // ⚠️ [설정 2] 본인의 구글 앱스 스크립트 웹 앱 URL (뒤에 ?나 다른게 붙지 않은 순수 exec 주소)
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwIJEFERzKBWBVOl6CZLhN38oOnRDBBghufCcVIcJd0P_tyT3OWspy7dEhbXPoTo9OT/exec';
 
-    /* --- 전역 변수 --- */
+    /* --- 전역 변수 관리 --- */
     let currentUser = null;
     let interviewHistory = [];
     let currentTurn = 1;
-    const maxTurn = 3;
+    const maxTurn = 3; // 💡 총 질문 개수 (원하는 대로 조절 가능)
+    let userTarget = "";
+    let userInfo = "";
 
-    /* --- DOM 요소 --- */
-    const authSection = document.getElementById('authSection');
-    const mainSection = document.getElementById('mainSection');
+    /* --- DOM 요소 연결 --- */
+    const authStage = document.getElementById('authStage');
+    const setupStage = document.getElementById('setupStage');
+    const interviewStage = document.getElementById('interviewStage');
+    const resultStage = document.getElementById('resultStage');
     const historySection = document.getElementById('historySection');
+
     const emailInput = document.getElementById('emailInput');
     const pwInput = document.getElementById('pwInput');
     const userEmailSpan = document.getElementById('userEmail');
+    const historyList = document.getElementById('historyList');
 
-    /* --- 초기 실행: 로그인 상태 체크 --- */
+    const targetInput = document.getElementById('targetInput');
+    const infoInput = document.getElementById('infoInput');
+    const voiceSelect = document.getElementById('voiceSelect');
+    const startBtn = document.getElementById('startBtn');
+
+    const questionText = document.getElementById('questionText');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const answerInput = document.getElementById('answerInput');
+    const submitAnswerBtn = document.getElementById('submitAnswerBtn');
+    const statusBox = document.getElementById('statusBox');
+    const feedbackText = document.getElementById('feedbackText');
+
+    /* --- 1. 인증(Auth) 상태 감지 --- */
     onAuthStateChanged(auth, (user) => {
       if (user) {
         currentUser = user;
-        authSection.classList.add('hidden');
-        mainSection.classList.remove('hidden');
         userEmailSpan.textContent = user.email;
-        loadHistory();
+        authStage.classList.add('hidden');
+        setupStage.classList.remove('hidden');
+        historySection.classList.remove('hidden');
+        loadHistory(); // 내 면접 기록 가져오기
       } else {
         currentUser = null;
-        authSection.classList.remove('hidden');
-        mainSection.classList.add('hidden');
+        authStage.classList.remove('hidden');
+        setupStage.classList.add('hidden');
+        interviewStage.classList.add('hidden');
+        resultStage.classList.add('hidden');
+        historySection.classList.add('hidden');
       }
     });
 
-    /* --- 기능: 로그인 / 회원가입 --- */
-    window.handleLogin = async () => {
+    /* --- 2. 로그인 & 회원가입 & 로그아웃 함수 이벤트 바인딩 --- */
+    document.getElementById('loginBtn').addEventListener('click', async (e) => {
+      e.preventDefault(); // 폼 제출로 인한 GET 전환 원천 차단
       try {
-        await signInWithEmailAndPassword(auth, emailInput.value, pwInput.value);
-      } catch (e) { alert("로그인 실패: " + e.message); }
-    };
+        await signInWithEmailAndPassword(auth, emailInput.value.trim(), pwInput.value.trim());
+      } catch (err) { alert("로그인 실패: " + err.message); }
+    });
 
-    window.handleSignup = async () => {
+    document.getElementById('signupBtn').addEventListener('click', async (e) => {
+      e.preventDefault();
       try {
-        await createUserWithEmailAndPassword(auth, emailInput.value, pwInput.value);
-        alert("회원가입 완료!");
-      } catch (e) { alert("회원가입 실패: " + e.message); }
-    };
+        await createUserWithEmailAndPassword(auth, emailInput.value.trim(), pwInput.value.trim());
+        alert("회원가입이 완료되었습니다! 자동으로 로그인됩니다.");
+      } catch (err) { alert("회원가입 실패: " + err.message); }
+    });
 
-    window.handleLogout = () => signOut(auth);
+    document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+    document.getElementById('restartBtn').addEventListener('click', () => location.reload());
 
-    /* --- 기능: 데이터베이스 저장 --- */
-    async function saveInterviewResult(target, finalFeedback) {
-      if (!currentUser) return;
+    /* --- 3. 면접 시작하기 --- */
+    startBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      userTarget = targetInput.value.trim();
+      userInfo = infoInput.value.trim();
+
+      if (!userTarget || !userInfo) {
+        alert('지원 목적과 서류 내용을 모두 입력해 주세요!');
+        return;
+      }
+
+      setupStage.classList.add('hidden');
+      historySection.classList.add('hidden');
+      interviewStage.classList.remove('hidden');
+
+      // AI 페르소나 주입
+      interviewHistory.push({
+        role: "system",
+        content: `당신은 면접관입니다. 유저의 목표: "${userTarget}", 서류 요약: "${userInfo}". 날카로운 압박 질문을 던지세요. 한 번에 딱 '하나의 질문'만 간결하게 해야 합니다.`
+      });
+
+      fetchQuestion("첫 번째 질문을 시작해 주세요. 지원 동기나 서류 기반 질문으로 시작하세요.");
+    });
+
+    /* --- 4. [핵심] 구글 앱스 스크립트와 통신하는 함수 (POST 방식 강제) --- */
+    async function fetchQuestion(promptText) {
       try {
-        await addDoc(collection(db, "interviews"), {
-          uid: currentUser.uid,
-          target: target,
-          feedback: finalFeedback,
-          timestamp: new Date(),
-          score: extractScore(finalFeedback) // 피드백 텍스트에서 점수 추출 (간단 로직)
+        setLoading(true, '면접관이 다음 질문을 고르고 있습니다...');
+        
+        let fullConversation = "";
+        interviewHistory.forEach(msg => { fullConversation += `[${msg.role}]: ${msg.content}\n`; });
+        fullConversation += `[user]: ${promptText}\n[system]: 다음 단 한 개의 면접 질문을 출력하시오.`;
+
+        // 🚨 doGet 에러 해결의 핵심: method를 명확히 대문자 'POST'로 설정하고 캐시 방지
+        const chatResponse = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          mode: 'cors',
+          headers: { 'Content-Type': 'text/plain' }, // 구글 CORS 이슈 방지를 위해 text/plain 권장
+          body: JSON.stringify({ type: 'chat', question: fullConversation })
         });
-        alert("결과가 데이터베이스에 안전하게 저장되었습니다.");
-        loadHistory();
-      } catch (e) { console.error("Error adding document: ", e); }
+        
+        const chatData = await chatResponse.json();
+        if (chatData.error) throw new Error(chatData.error);
+        const aiQuestion = chatData.answer.trim();
+
+        interviewHistory.push({ role: "assistant", content: aiQuestion });
+        questionText.textContent = `[질문 ${currentTurn}/${maxTurn}] ${aiQuestion}`;
+
+        // TTS 오디오 가져오기
+        setLoading(true, '면접관이 질문을 말하고 있습니다...');
+        const ttsResponse = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          mode: 'cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            type: 'tts',
+            text: aiQuestion,
+            voice: voiceSelect.value
+          })
+        });
+        const ttsData = await ttsResponse.json();
+        if (ttsData.error) throw new Error(ttsData.error);
+
+        // 오디오 플레이어 탑재 및 재생
+        audioPlayer.src = base64ToAudioUrl(ttsData.audioBase64, 'audio/mpeg');
+
+      } catch (error) {
+        alert('요청 중 오류가 발생했습니다. (doGet 캐시 에러 의심 시 GAS 새 배포 필요): ' + error.message);
+        console.error(error);
+      } finally {
+        setLoading(false, '');
+      }
     }
 
-    // 피드백 텍스트에서 [최종 면접 점수: 85점] 형태를 찾아 숫자를 뽑는 함수
+    /* --- 5. 답변 제출 (턴 제어) --- */
+    submitAnswerBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const userAnswer = answerInput.value.trim();
+      if (!userAnswer) {
+        alert('답변을 입력해 주세요!');
+        return;
+      }
+
+      interviewHistory.push({ role: "user", content: userAnswer });
+      answerInput.value = ''; 
+
+      if (currentTurn < maxTurn) {
+        currentTurn++;
+        fetchQuestion(`방금 한 답변은 "${userAnswer}" 입니다. 이 답변의 약점을 잡고 꼬리질문을 1개만 하세요.`);
+      } else {
+        finishInterview();
+      }
+    });
+
+    /* --- 6. 면접 종료 및 최종 피드백 & DB 저장 --- */
+    async function finishInterview() {
+      try {
+        setLoading(true, '최종 평가 리포트를 작성하고 있습니다. 잠시만 기다려 주세요...');
+        interviewStage.classList.add('hidden');
+        resultStage.classList.remove('hidden');
+
+        let finalPrompt = "면접이 모두 끝났습니다. 다음 양식으로 종합 피드백을 작성해 주세요.\n\n[최종 면접 점수: OO점 / 100점]\n- 총평:\n- 좋았던 점:\n- 아쉬운 점 및 보완 방향:";
+        let fullConversation = "";
+        interviewHistory.forEach(msg => { fullConversation += `[${msg.role}]: ${msg.content}\n`; });
+        fullConversation += `[user]: ${finalPrompt}`;
+
+        const response = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          mode: 'cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ type: 'chat', question: fullConversation })
+        });
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        feedbackText.textContent = data.answer;
+
+        // 💾 Firestore Database에 결과 영구 저장
+        await addDoc(collection(db, "interviews"), {
+          uid: currentUser.uid,
+          target: userTarget,
+          feedback: data.answer,
+          score: extractScore(data.answer),
+          timestamp: new Date()
+        });
+
+      } catch (error) {
+        alert('피드백 저장 실패: ' + error.message);
+      } finally {
+        setLoading(false, '');
+      }
+    }
+
+    /* --- 유틸리티 함수들 --- */
+    function base64ToAudioUrl(base64, mimeType) {
+      const byteCharacters = atob(base64);
+      const byteArrays = [];
+      for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+        const slice = byteCharacters.slice(offset, offset + 512);
+        const byteNumbers = new Array(slice.length);
+        for (let i = 0; i < slice.length; i++) byteNumbers[i] = slice.charCodeAt(i);
+        byteArrays.push(new Uint8Array(byteNumbers));
+      }
+      return URL.createObjectURL(new Blob(byteArrays, { type: mimeType }));
+    }
+
     function extractScore(text) {
       const match = text.match(/점수:\s*(\d+)/);
       return match ? parseInt(match[1]) : 0;
     }
 
-    /* --- 기능: 내 기록 불러오기 --- */
     async function loadHistory() {
-      const q = query(collection(db, "interviews"), where("uid", "==", currentUser.uid), orderBy("timestamp", "desc"));
-      const querySnapshot = await getDocs(q);
-      const historyList = document.getElementById('historyList');
-      historyList.innerHTML = '';
-      
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        const date = data.timestamp.toDate().toLocaleDateString();
-        const li = document.createElement('div');
-        li.className = 'history-item';
-        li.innerHTML = `<strong>[${date}] ${data.target}</strong> - 점수: ${data.score}점 <br> <small>${data.feedback.substring(0, 100)}...</small>`;
-        historyList.appendChild(li);
-      });
+      try {
+        const q = query(collection(db, "interviews"), where("uid", "==", currentUser.uid), orderBy("timestamp", "desc"));
+        const querySnapshot = await getDocs(q);
+        historyList.innerHTML = '';
+        if(querySnapshot.empty) {
+          historyList.innerHTML = '<p style="color:#999; text-align:center;">아직 진행한 면접 기록이 없습니다.</p>';
+          return;
+        }
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          const date = data.timestamp ? data.timestamp.toDate().toLocaleDateString() : '-';
+          const item = document.createElement('div');
+          item.className = 'history-item';
+          item.innerHTML = `<strong>[${date}] ${data.target}</strong> <span class="score-badge">${data.score}점</span><br><p style="margin-top:5px; font-size:13px; color:#555;">${data.feedback.substring(0, 120)}...</p>`;
+          historyList.appendChild(item);
+        });
+      } catch (e) { console.error(e); }
     }
 
-    // --- 면접 로직 연동 (이전 답변 코드와 병합) ---
-    // (이하 코드들은 이전 답변의 startInterview, fetchQuestion 등을 함수 형태로 포함)
-    // ... [중략: 이전 단계에서 완성한 AI 면접 로직을 이곳에 붙여넣습니다] ...
-    // 단, finishInterview() 끝부분에서 saveInterviewResult()를 호출하도록 수정하세요.
+    function setLoading(isLoading, message) {
+      startBtn.disabled = isLoading;
+      submitAnswerBtn.disabled = isLoading;
+      statusBox.textContent = message;
+    }
   </script>
-  
+
   <style>
-    /* 전문적인 느낌의 추가 스타일 */
-    .hidden { display: none; }
-    .history-item { padding: 15px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 5px; border-radius: 8px; }
-    .auth-box { max-width: 400px; margin: 100px auto; padding: 30px; background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-    input { width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 8px; border: 1px solid #ddd; }
-    .btn { cursor: pointer; padding: 12px; background: #1e3c72; color: white; border: none; border-radius: 8px; width: 100%; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: linear-gradient(135deg, #1e3c72, #2a5298); font-family: sans-serif; color: #333; padding: 20px 0; }
+    .container { width: min(750px, 94%); margin: 20px auto; background: #fff; border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
+    h1 { color: #1e3c72; text-align: center; margin-top: 0; }
+    .hidden { display: none !important; }
+    .form-group { margin-bottom: 18px; }
+    label { font-weight: bold; display: block; margin-bottom: 6px; color: #2a5298; }
+    input, textarea, select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 10px; outline: none; font-size: 15px; }
+    textarea { min-height: 120px; resize: vertical; }
+    .btn { width: 100%; border: none; border-radius: 10px; height: 48px; font-size: 16px; font-weight: bold; cursor: pointer; background: #1e3c72; color: white; transition: 0.2s; }
+    .btn:hover { background: #2a5298; }
+    .btn:disabled { background: #ccc; cursor: not-allowed; }
+    .chat-box { background: #f5f7fa; border-radius: 12px; padding: 18px; min-height: 100px; margin-bottom: 15px; border-left: 5px solid #1e3c72; }
+    .ai-question { font-size: 16px; font-weight: bold; line-height: 1.5; margin-bottom: 10px; }
+    audio { width: 100%; }
+    .status { text-align: center; color: #666; font-size: 14px; margin: 10px 0; min-height: 20px; font-weight: bold; }
+    .history-box { margin-top: 25px; padding-top: 20px; border-top: 2px dashed #ddd; }
+    .history-item { padding: 12px; background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; }
+    .score-badge { background: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 5px; font-weight: bold; font-size: 13px; float: right; }
   </style>
 </head>
 <body>
-  <div id="authSection" class="auth-box">
-    <h2>👋 환영합니다</h2>
-    <input type="email" id="emailInput" placeholder="이메일" />
-    <input type="password" id="pwInput" placeholder="비밀번호" />
-    <button class="btn" onclick="handleLogin()">로그인</button>
-    <button class="btn" style="background: #666; margin-top:5px;" onclick="handleSignup()">회원가입</button>
+
+  <div class="container">
+    <h1>👔 실전 AI 압박 면접관</h1>
+    
+    <div id="authStage">
+      <div class="form-group"><label>이메일</label><input type="email" id="emailInput" placeholder="example@email.com"></div>
+      <div class="form-group"><label>비밀번호</label><input type="password" id="pwInput" placeholder="6자리 이상 비밀번호"></div>
+      <button class="btn" id="loginBtn">로그인</button>
+      <button class="btn" id="signupBtn" style="background:#555; margin-top:6px;">새 계정 만들기</button>
+    </div>
+
+    <div id="userBar" style="text-align: right; font-size: 14px; margin-bottom: 10px;">
+      <span id="userEmail" style="font-weight: bold;"></span>님 면접실 연습 중 
+      <button id="logoutBtn" style="cursor:pointer; margin-left:5px; padding:2px 6px;">로그아웃</button>
+    </div>
+
+    <div id="setupStage" class="hidden">
+      <div class="form-group">
+        <label>1. 지원 목적 및 직무</label>
+        <input type="text" id="targetInput" placeholder="예: 한국대학교 컴퓨터공학과 / 네이버 프론트엔드 개발자" />
+      </div>
+      <div class="form-group">
+        <label>2. 본인의 서류/생기부 내용 요약</label>
+        <textarea id="infoInput" placeholder="AI 면접관이 질문의 허점을 파고들 수 있도록 교내 활동, 자소서 핵심 내용을 적어주세요."></textarea>
+      </div>
+      <div class="form-group">
+        <label>3. 면접관 목소리 성향</label>
+        <select id="voiceSelect">
+          <option value="onyx">onyx (냉철하고 묵직한 남성)</option>
+          <option value="nova">nova (똑부러지고 차분한 여성)</option>
+          <option value="alloy">alloy (신뢰감을 주는 중성 부드러움)</option>
+        </select>
+      </div>
+      <button class="btn" id="startBtn">🔥 압박 면접 시작하기</button>
+    </div>
+
+    <div id="interviewStage" class="hidden">
+      <div class="chat-box">
+        <div id="questionText" class="ai-question">면접관이 생기부를 검토하고 있습니다...</div>
+        <audio id="audioPlayer" controls autoplay></audio>
+      </div>
+      <div class="form-group">
+        <label>✍️ 당신의 답변</label>
+        <textarea id="answerInput" placeholder="질문을 잘 듣고 논리적으로 답변을 입력하세요."></textarea>
+      </div>
+      <div id="statusBox" class="status"></div>
+      <button class="btn" id="submitAnswerBtn">답변 제출 (다음 질문)</button>
+    </div>
+
+    <div id="resultStage" class="hidden">
+      <div class="chat-box" style="border-left-color: #2e7d32;">
+        <label style="color: #2e7d32; font-size:18px;">📊 AI 면접 채점표 및 피드백</label>
+        <div id="feedbackText" style="white-space: pre-line; line-height: 1.6; margin-top:10px;"></div>
+      </div>
+      <button class="btn" id="restartBtn" style="background: #555;">메인 화면으로 돌아가기</button>
+    </div>
+
+    <div id="historySection" class="history-box hidden">
+      <h3>📜 나의 과거 면접 기록 목록</h3>
+      <div id="historyList">기록 데이터를 가져오는 중...</div>
+    </div>
+
   </div>
 
-  <div id="mainSection" class="container hidden">
-    <div style="text-align: right; margin-bottom: 10px;">
-       <span id="userEmail"></span>님 접속 중 <button onclick="handleLogout()">로그아웃</button>
-    </div>
-    <hr>
-    <h3>📜 내 면접 히스토리</h3>
-    <div id="historyList">기록을 불러오는 중...</div>
-  </div>
 </body>
 </html>
-
----
-
-Firebase 연동을 통해 이제 단순한 '일회용 변환기'가 아닌, **데이터 기반의 퍼스널 트레이닝 서비스**로 거듭났습니다!
-
-마지막으로 가이드해 드린 코드와 이전 단계의 AI 로직을 잘 병합하시면, 깃허브에 배포했을 때 완벽한 웹 사이트가 될 것입니다. 추가적인 수정이나 기능 확장이 필요하시면 언제든 말씀해 주세요!
