@@ -3,358 +3,1334 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Firebase 로그인 + AI TTS 음성 변환기</title>
+  <title>면접 AI — 나만의 면접 코치</title>
   <style>
-    * { box-sizing: border-box; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy: #0f1f3d;
+      --navy-mid: #1a3260;
+      --accent: #3d7fff;
+      --accent-light: #6fa0ff;
+      --gold: #f5a623;
+      --gold-light: #ffd580;
+      --surface: #ffffff;
+      --surface2: #f4f6fb;
+      --surface3: #e9edf5;
+      --border: rgba(61, 127, 255, 0.18);
+      --text: #1a2340;
+      --text-sub: #4a5880;
+      --text-muted: #8a96b0;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --radius: 14px;
+      --shadow: 0 4px 24px rgba(15,31,61,0.10);
+    }
 
     body {
-      margin: 0;
+      font-family: 'Pretendard', 'Apple SD Gothic Neo', Arial, sans-serif;
+      background: var(--navy);
+      color: var(--text);
       min-height: 100vh;
-      background: linear-gradient(135deg, #e3f2fd, #fce4ec);
-      font-family: Arial, sans-serif;
-      color: #333;
     }
 
-    .container {
-      width: min(900px, 92%);
-      margin: 40px auto;
-      background: #ffffff;
-      border-radius: 24px;
+    /* ── 헤더 ── */
+    .app-header {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 38px;
+      height: 38px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .logo-text {
+      color: #fff;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-text span {
+      color: var(--gold);
+    }
+
+    .header-user {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: rgba(255,255,255,0.75);
+      font-size: 14px;
+    }
+
+    .btn-logout {
+      background: rgba(255,255,255,0.10);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.20);
+      border-radius: 8px;
+      padding: 7px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-logout:hover { background: rgba(255,255,255,0.18); }
+
+    /* ── 메인 레이아웃 ── */
+    .main-wrap {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+
+    /* ── 카드 ── */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
       padding: 28px;
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.16);
-    }
-
-    h1 {
-      margin: 0 0 8px;
-      text-align: center;
-      font-size: 28px;
-      color: #1a1a2e;
-    }
-
-    .subtitle {
-      text-align: center;
-      color: #777;
-      margin-bottom: 24px;
-      font-size: 14px;
-    }
-
-    .info {
-      padding: 14px;
       margin-bottom: 20px;
-      border-radius: 14px;
-      background: #edf2f7;
-      color: #4a5568;
-      font-size: 14px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title .badge {
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      letter-spacing: 0.3px;
+    }
+
+    /* ── 로그인 화면 ── */
+    #loginScreen {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: linear-gradient(160deg, var(--navy) 0%, #0d2060 100%);
+    }
+
+    .login-hero {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .login-hero .big-icon {
+      font-size: 56px;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    .login-hero h1 {
+      color: #fff;
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 10px;
+    }
+
+    .login-hero h1 span { color: var(--gold); }
+
+    .login-hero p {
+      color: rgba(255,255,255,0.60);
+      font-size: 16px;
       line-height: 1.6;
     }
 
-    .form-group {
-      margin-bottom: 15px;
-    }
-
-    label {
-      font-weight: bold;
-      display: block;
-      margin-bottom: 6px;
-      color: #2d3748;
-    }
-
-    .option-box {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-
-    select, input {
-      height: 44px;
-      padding: 0 12px;
-      border: 1px solid #ddd;
-      border-radius: 12px;
-      font-size: 14px;
-      outline: none;
+    .login-card {
+      background: var(--surface);
+      border-radius: 20px;
+      padding: 32px;
       width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.30);
+    }
+
+    .login-card h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .field-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-sub);
+      margin-bottom: 6px;
+    }
+
+    input[type="email"],
+    input[type="password"],
+    input[type="text"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--surface3);
+      border-radius: 10px;
+      font-size: 15px;
+      color: var(--text);
+      background: var(--surface2);
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      background: #fff;
+    }
+
+    .field { margin-bottom: 14px; }
+
+    .btn {
+      border: none;
+      border-radius: 10px;
+      padding: 13px 20px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.10s, opacity 0.15s;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: inherit;
+    }
+
+    .btn:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface3); color: var(--text); }
+    .btn-gold { background: var(--gold); color: var(--navy); }
+    .btn-danger { background: #fee2e2; color: var(--danger); }
+    .btn-success { background: #dcfce7; color: #166534; }
+    .btn-sm { padding: 8px 14px; font-size: 13px; width: auto; border-radius: 8px; }
+
+    .btn-row { display: flex; gap: 10px; margin-top: 10px; }
+
+    .login-divider {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+      margin: 14px 0;
+    }
+
+    /* ── 탭 ── */
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      background: var(--surface2);
+      border-radius: 12px;
+      padding: 5px;
+      margin-bottom: 22px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 9px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      color: var(--text-sub);
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+
+    .tab-btn.active {
+      background: var(--surface);
+      color: var(--navy);
+      box-shadow: 0 2px 8px rgba(15,31,61,0.10);
+    }
+
+    /* ── 면접 준비 섹션 ── */
+    .prep-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 640px) {
+      .prep-grid { grid-template-columns: 1fr; }
     }
 
     textarea {
-      width: 100%;
-      min-height: 180px;
+      min-height: 120px;
       resize: vertical;
-      padding: 16px;
-      border: 1px solid #ddd;
-      border-radius: 16px;
-      font-size: 16px;
-      line-height: 1.5;
-      outline: none;
+      line-height: 1.6;
     }
 
-    textarea:focus, select:focus, input:focus {
-      border-color: #42a5f5;
-      box-shadow: 0 0 0 3px rgba(66, 165, 245, 0.15);
+    textarea.tall { min-height: 180px; }
+
+    /* ── 면접 진행 영역 ── */
+    #interviewArea {
+      display: none;
     }
 
-    .button-row {
+    .interview-status {
       display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-      flex-wrap: wrap;
-      margin-top: 14px;
-    }
-
-    button, .download-link {
-      border: none;
-      border-radius: 12px;
-      padding: 0 18px;
-      height: 46px;
-      font-size: 15px;
-      cursor: pointer;
-      transition: 0.15s;
-      font-weight: bold;
-      text-decoration: none;
-      display: inline-flex;
       align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      background: linear-gradient(135deg, #e8f0fe, #f0f4ff);
+      border-radius: 12px;
+      margin-bottom: 16px;
+      border: 1px solid rgba(61,127,255,0.15);
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .status-dot.live {
+      background: var(--success);
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.25); }
+    }
+
+    .status-text {
+      font-size: 14px;
+      color: var(--text-sub);
+      font-weight: 600;
+    }
+
+    /* ── 질문 버블 ── */
+    .q-bubble {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+      color: #fff;
+      border-radius: 16px 16px 16px 4px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+      position: relative;
+      line-height: 1.7;
+      font-size: 16px;
+    }
+
+    .q-bubble::before {
+      content: 'AI 면접관';
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .q-num {
+      position: absolute;
+      top: 16px;
+      right: 18px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.45);
+      font-weight: 600;
+    }
+
+    /* ── 답변 영역 ── */
+    .answer-area {
+      background: var(--surface2);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 14px;
+    }
+
+    .answer-area textarea {
+      border: none;
+      background: transparent;
+      resize: none;
+      font-size: 15px;
+      min-height: 100px;
+    }
+
+    .answer-area textarea:focus {
+      border-color: transparent;
+      box-shadow: none;
+    }
+
+    /* ── TTS 컨트롤 ── */
+    .tts-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: var(--surface2);
+      border-radius: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .tts-label { font-size: 13px; color: var(--text-sub); font-weight: 600; }
+
+    .tts-select {
+      padding: 7px 12px;
+      border: 1.5px solid var(--surface3);
+      border-radius: 8px;
+      font-size: 13px;
+      background: var(--surface);
+      color: var(--text);
+      outline: none;
+      width: auto;
+      height: auto;
+    }
+
+    .tts-select:focus { border-color: var(--accent); }
+
+    /* ── 오디오 플레이어 ── */
+    audio {
+      width: 100%;
+      margin: 8px 0;
+      border-radius: 8px;
+    }
+
+    /* ── 피드백 ── */
+    .feedback-block {
+      background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+      border: 1px solid #bbf7d0;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 14px;
+    }
+
+    .feedback-block .fb-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #166534;
+      margin-bottom: 10px;
+    }
+
+    .feedback-block p {
+      font-size: 14px;
+      color: #166534;
+      line-height: 1.7;
+    }
+
+    /* ── 이력 카드 ── */
+    .history-item {
+      background: var(--surface2);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .history-item .hi-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .history-item .hi-company {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .history-item .hi-date {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .history-item .hi-q {
+      font-size: 13px;
+      color: var(--text-sub);
+      margin-bottom: 6px;
+      border-left: 3px solid var(--accent);
+      padding-left: 10px;
+    }
+
+    .history-item .hi-fb {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ── 알림 ── */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--navy);
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 9999;
+      transition: transform 0.3s ease;
+      white-space: nowrap;
+    }
+
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── 로딩 스피너 ── */
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── 진행 단계 표시 ── */
+    .step-indicator {
+      display: flex;
+      gap: 6px;
       justify-content: center;
+      margin-bottom: 20px;
     }
 
-    button:hover, .download-link:hover {
-      transform: translateY(-2px);
-      opacity: 0.9;
+    .step-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--surface3);
+      transition: background 0.2s, transform 0.2s;
     }
 
-    button:disabled {
-      cursor: not-allowed;
-      opacity: 0.6;
-      transform: none;
+    .step-dot.done { background: var(--success); }
+    .step-dot.current { background: var(--accent); transform: scale(1.35); }
+
+    /* ── 응답 없음 ── */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
     }
 
-    .make-btn { background: #42a5f5; color: white; width: 100%; }
-    .clear-btn { background: #b0bec5; color: white; }
-    .download-link { background: #7e57c2; color: white; }
-    .auth-btn { background: #1a1a2e; color: white; width: 100%; margin-bottom: 8px; }
+    .empty-state .es-icon { font-size: 40px; margin-bottom: 10px; }
+    .empty-state p { font-size: 14px; line-height: 1.6; }
 
     .hidden { display: none !important; }
 
-    .status {
-      min-height: 24px;
-      margin-top: 14px;
-      color: #e94560;
-      font-size: 14px;
-      text-align: center;
-      font-weight: bold;
-    }
+    /* ── 구분선 ── */
+    hr { border: none; border-top: 1px solid var(--surface3); margin: 20px 0; }
 
-    .result-box {
-      margin-top: 20px;
-      padding: 18px;
-      border-radius: 18px;
-      background: #f7f9fb;
-      border: 1px solid #edf1f5;
-    }
-
-    audio { width: 100%; margin-top: 10px; }
-
-    @media (max-width: 700px) {
-      .option-box { grid-template-columns: 1fr; }
+    /* ── 반응형 ── */
+    @media (max-width: 640px) {
+      .app-header { padding: 14px 16px; }
+      .main-wrap { padding: 16px 12px 48px; }
+      .card { padding: 18px; }
+      .btn-row { flex-direction: column; }
     }
   </style>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-    // ⚠️ [설정 1] 본인의 Firebase 웹 앱 키값을 정확히 입력하세요!
-    const firebaseConfig = {
-      apiKey: "AIzaSyDicqUuRCRdxuQQtmLeYPEpOIQAIN7sYZ8",
-      authDomain: "bigdata-real.firebaseapp.com",
-      projectId: "bigdata-real",
-      storageBucket: "bigdata-real.firebasestorage.app",
-      messagingSenderId: "207202321481",
-      appId: "1:207202321481:web:6b1e8e4aa447599a20eb98"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-
-    // ⚠️ [설정 2] 방금 새로 배포한 구글 웹 앱 URL (/exec로 끝나는 주소)
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzJZf7td737irvsLbpZ3kf7W6ygJwmUd6arO8w6G8z_ZSCCuuTTbsgWVin9FoP8DYPX/exec';
-
-    // HTML 요소 가져오기
-    const authStage = document.getElementById('authStage');
-    const mainStage = document.getElementById('mainStage');
-    const userBar = document.getElementById('userBar');
-    const userEmailSpan = document.getElementById('userEmail');
-    
-    const emailInput = document.getElementById('emailInput');
-    const pwInput = document.getElementById('pwInput');
-    const loginBtn = document.getElementById('loginBtn');
-    const signupBtn = document.getElementById('signupBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-
-    const textInput = document.getElementById('textInput');
-    const modelSelect = document.getElementById('modelSelect');
-    const voiceSelect = document.getElementById('voiceSelect');
-    const speedInput = document.getElementById('speedInput');
-    const makeBtn = document.getElementById('makeBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const statusBox = document.getElementById('status');
-    const resultBox = document.getElementById('resultBox');
-    const audioPlayer = document.getElementById('audioPlayer');
-    const downloadLink = document.getElementById('downloadLink');
-
-    // 🔐 [Firebase] 로그인 상태 감지 인증 시스템
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        userEmailSpan.textContent = user.email;
-        authStage.classList.add('hidden');
-        userBar.classList.remove('hidden');
-        mainStage.classList.remove('hidden');
-      } else {
-        authStage.classList.remove('hidden');
-        userBar.classList.add('hidden');
-        mainStage.classList.add('hidden');
-        resultBox.classList.add('hidden');
-      }
-    });
-
-    // 로그인 기능
-    loginBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      try { await signInWithEmailAndPassword(auth, emailInput.value.trim(), pwInput.value.trim()); } 
-      catch (err) { alert("로그인 실패: " + err.message); }
-    });
-
-    // 회원가입 기능
-    signupBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      try { 
-        await createUserWithEmailAndPassword(auth, emailInput.value.trim(), pwInput.value.trim()); 
-        alert("회원가입 완료! 자동으로 로그인됩니다.");
-      } catch (err) { alert("회원가입 실패: " + err.message); }
-    });
-
-    // 로그아웃 기능
-    logoutBtn.addEventListener('click', () => signOut(auth));
-
-    // 🔊 [TTS] 음성 만들기 기능 연동
-    makeBtn.addEventListener('click', makeSpeech);
-    clearBtn.addEventListener('click', () => {
-      textInput.value = '';
-      statusBox.textContent = '';
-      audioPlayer.removeAttribute('src');
-      resultBox.classList.add('hidden');
-    });
-
-    async function makeSpeech() {
-      const text = textInput.value.trim();
-      const model = modelSelect.value;
-      const voice = voiceSelect.value;
-      const speed = Number(speedInput.value || 1.0);
-
-      if (!text) return alert('음성으로 변환할 텍스트를 입력해주세요.');
-      if (speed < 0.25 || speed > 4.0) return alert('속도는 0.25 ~ 4.0 사이여야 합니다.');
-
-      try {
-        makeBtn.disabled = true;
-        makeBtn.textContent = '생성 중...';
-        resultBox.classList.add('hidden');
-        statusBox.textContent = '구글 Apps Script 서버에 요청을 전달하는 중입니다...';
-
-        // 🚨 에러 해결의 핵심: POST 대신 데이터를 안전한 쿼리스트링(GET) 주소로 조립하여 전송합니다.
-        const ttsUrl = `${APPS_SCRIPT_URL}?type=tts&model=${model}&voice=${voice}&speed=${speed}&text=${encodeURIComponent(text)}`;
-        
-        const response = await fetch(ttsUrl);
-        const data = await response.json();
-
-        if (data.error) throw new Error(data.error);
-        if (!data.audioBase64) throw new Error('음성 인코딩 데이터를 받지 못했습니다.');
-
-        // Base64 데이터를 재생 가능한 오디오 URL로 복원
-        const audioUrl = base64ToAudioUrl(data.audioBase64, 'audio/mpeg');
-        audioPlayer.src = audioUrl;
-        downloadLink.href = audioUrl;
-        downloadLink.download = `tts-${Date.now()}.mp3`;
-        
-        resultBox.classList.remove('hidden');
-        statusBox.textContent = '음성 파일 변환 성공!';
-      } catch (error) {
-        console.error(error);
-        statusBox.textContent = '요청 실패';
-        alert('오류가 발생했습니다:\n' + error.message);
-      } finally {
-        makeBtn.disabled = false;
-        makeBtn.textContent = '음성 만들기';
-      }
-    }
-
-    function base64ToAudioUrl(base64, mimeType) {
-      const byteCharacters = atob(base64);
-      const byteArrays = [];
-      for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-        const slice = byteCharacters.slice(offset, offset + 512);
-        const byteNumbers = new Array(slice.length);
-        for (let i = 0; i < slice.length; i++) byteNumbers[i] = slice.charCodeAt(i);
-        byteArrays.push(new Uint8Array(byteNumbers));
-      }
-      return URL.createObjectURL(new Blob(byteArrays, { type: mimeType }));
-    }
-  </script>
 </head>
 <body>
-  <div class="container">
-    <h1>🔊 AI TTS 음성 변환기</h1>
-    <div class="subtitle">Firebase 가입 보안 통신 인증 시스템 통합 버전</div>
 
-    <div id="userBar" class="hidden" style="text-align: right; font-size: 13px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee;">
-      🔐 <span id="userEmail" style="font-weight: bold; color: #42a5f5;"></span>님 환영합니다. 
-      <button id="logoutBtn" style="height:30px; padding:0 10px; font-size:12px; background:#e53935; color:white; border-radius:6px;">로그아웃</button>
+<!-- ════════════════════════════════════════ 로그인 화면 ══ -->
+<div id="loginScreen">
+  <div class="login-hero">
+    <span class="big-icon">🎯</span>
+    <h1>면접 <span>AI</span> 코치</h1>
+    <p>AI가 실전처럼 질문하고,<br>음성으로 읽어주며, 맞춤 피드백을 드립니다.</p>
+  </div>
+
+  <div class="login-card">
+    <h2>로그인 / 회원가입</h2>
+    <div class="field">
+      <div class="field-label">이메일</div>
+      <input id="loginEmail" type="email" placeholder="example@email.com" />
+    </div>
+    <div class="field">
+      <div class="field-label">비밀번호</div>
+      <input id="loginPassword" type="password" placeholder="6자리 이상" />
+    </div>
+    <button class="btn btn-primary" id="loginBtn">🔐 로그인</button>
+    <div class="login-divider">— 또는 —</div>
+    <button class="btn btn-secondary" id="signupBtn">✉️ 이메일로 회원가입</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ 메인 앱 ══ -->
+<div id="appScreen" class="hidden">
+  <header class="app-header">
+    <div class="logo">
+      <div class="logo-icon">🎯</div>
+      <div class="logo-text">면접 <span>AI</span> 코치</div>
+    </div>
+    <div class="header-user">
+      <span id="headerEmail"></span>
+      <button class="btn-logout" id="logoutBtn">로그아웃</button>
+    </div>
+  </header>
+
+  <div class="main-wrap">
+
+    <!-- 탭 -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="prepare">📋 면접 준비</button>
+      <button class="tab-btn" data-tab="interview">🎤 면접 진행</button>
+      <button class="tab-btn" data-tab="history">📂 면접 기록</button>
     </div>
 
-    <div id="authStage">
-      <div class="info">⚠️ 서비스를 이용하려면 이메일 로그인이 필요합니다. 계정이 없다면 회원가입을 먼저 진행하세요.</div>
-      <div class="form-group"><label>이메일 주소</label><input type="email" id="emailInput" placeholder="example@email.com"></div>
-      <div class="form-group"><label>비밀번호</label><input type="password" id="pwInput" placeholder="6자리 이상 비밀번호"></div>
-      <button class="auth-btn" id="loginBtn">로그인하기</button>
-      <button class="auth-btn" id="signupBtn" style="background:#555;">신규 회원가입</button>
+    <!-- ──────── 탭1: 면접 준비 ──────── -->
+    <div id="tab-prepare">
+      <div class="card">
+        <div class="card-title">🏢 지원 정보</div>
+        <div class="prep-grid">
+          <div class="field">
+            <div class="field-label">지원 회사</div>
+            <input id="prepCompany" type="text" placeholder="예: 삼성전자, 카카오…" />
+          </div>
+          <div class="field">
+            <div class="field-label">지원 직무 / 부서</div>
+            <input id="prepRole" type="text" placeholder="예: 백엔드 개발자, 마케팅 인턴…" />
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">면접 유형</div>
+          <select id="prepType">
+            <option value="인성">인성 면접</option>
+            <option value="직무">직무 역량 면접</option>
+            <option value="압박">압박 면접</option>
+            <option value="PT">PT / 발표 면접</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📄 본인 소개 자료 <span class="badge">AI가 질문 생성에 활용</span></div>
+        <div class="field">
+          <div class="field-label">자기소개서 요약 / 특기 사항</div>
+          <textarea class="tall" id="prepSelfIntro" placeholder="지원동기, 장단점, 경험, 특기 사항 등을 자유롭게 적어주세요.&#10;예: 대학에서 컴퓨터공학을 전공하고 스타트업에서 2년간 백엔드 개발 경험이 있습니다. 팀 프로젝트를 이끌며 리더십을 키웠고 AWS와 Docker를 실무에서 다루었습니다."></textarea>
+        </div>
+        <div class="field">
+          <div class="field-label">생기부 / 수상 이력 / 추가 참고 사항 <span style="color:var(--text-muted);font-size:12px;font-weight:400">(선택)</span></div>
+          <textarea id="prepExtra" placeholder="학교생활기록부 내용, 수상 이력, 자격증, 기타 강조하고 싶은 사항을 적어주세요."></textarea>
+        </div>
+        <div style="color:var(--text-muted);font-size:12px;line-height:1.6;margin-top:4px;">
+          ℹ️ 입력한 개인 정보는 면접 질문 생성에만 사용되며, 면접 종료 후 피드백만 저장되고 원본 자료는 자동 삭제됩니다.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">⚙️ 면접 설정</div>
+        <div class="prep-grid">
+          <div class="field">
+            <div class="field-label">질문 수</div>
+            <select id="prepQCount">
+              <option value="3">3문항 (빠른 연습)</option>
+              <option value="5" selected>5문항 (표준)</option>
+              <option value="7">7문항 (심화)</option>
+              <option value="10">10문항 (실전)</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="field-label">TTS 음성</div>
+            <select id="prepVoice">
+              <option value="onyx">Onyx (남성, 중후한)</option>
+              <option value="alloy">Alloy (중성, 선명한)</option>
+              <option value="echo">Echo (남성, 차분한)</option>
+              <option value="fable">Fable (남성, 내레이션)</option>
+              <option value="nova">Nova (여성, 활기찬)</option>
+              <option value="shimmer">Shimmer (여성, 부드러운)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-gold" id="startInterviewBtn" style="margin-top:4px;">
+        🎤 면접 시작하기
+      </button>
     </div>
 
-    <div id="mainStage" class="hidden">
-      <div class="option-box">
-        <select id="modelSelect">
-          <option value="tts-1">tts-1 빠른 생성</option>
-          <option value="tts-1-hd">tts-1-hd 고품질</option>
-        </select>
-        <select id="voiceSelect">
-          <option value="alloy">alloy (기본)</option>
-          <option value="echo">echo</option>
-          <option value="fable">fable</option>
-          <option value="onyx">onyx (남성)</option>
-          <option value="nova">nova (여성)</option>
-          <option value="shimmer">shimmer</option>
-        </select>
-        <input id="speedInput" type="number" min="0.25" max="4.0" step="0.05" value="1.0" />
+    <!-- ──────── 탭2: 면접 진행 ──────── -->
+    <div id="tab-interview" class="hidden">
+
+      <div id="interviewReady" class="card" style="text-align:center;padding:40px 28px;">
+        <div style="font-size:44px;margin-bottom:14px;">🎤</div>
+        <div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:8px;">면접 준비 완료 후 시작하세요</div>
+        <p style="color:var(--text-sub);font-size:14px;line-height:1.6;">
+          '면접 준비' 탭에서 회사, 직무, 자기소개서를 입력하고<br>'면접 시작하기'를 눌러주세요.
+        </p>
       </div>
 
-      <div>
-        <label>변환할 텍스트 입력</label>
-        <textarea id="textInput" placeholder="여기에 적은 문장이 AI 목소리로 변환됩니다."></textarea>
+      <div id="interviewArea">
+
+        <!-- 상태 표시 -->
+        <div class="interview-status">
+          <div class="status-dot" id="statusDot"></div>
+          <div class="status-text" id="statusText">준비 중...</div>
+          <div style="margin-left:auto;font-size:13px;color:var(--text-muted);" id="qCounter"></div>
+        </div>
+
+        <!-- 진행 단계 -->
+        <div class="step-indicator" id="stepIndicator"></div>
+
+        <!-- 질문 버블 -->
+        <div class="q-bubble hidden" id="qBubble">
+          <span class="q-num" id="qNum"></span>
+          <span id="qText"></span>
+        </div>
+
+        <!-- TTS 컨트롤 -->
+        <div class="tts-bar hidden" id="ttsBar">
+          <span class="tts-label">🔊 음성 재생</span>
+          <select class="tts-select" id="ttsModel">
+            <option value="tts-1">tts-1 (빠름)</option>
+            <option value="tts-1-hd">tts-1-hd (고품질)</option>
+          </select>
+          <div class="btn-row" style="margin:0;">
+            <button class="btn btn-primary btn-sm" id="ttsPlayBtn">▶ 질문 듣기</button>
+          </div>
+          <audio id="ttsAudio" controls style="flex:1;min-width:0;"></audio>
+        </div>
+
+        <!-- 답변 입력 -->
+        <div class="card hidden" id="answerCard" style="padding:16px;">
+          <div class="card-title" style="margin-bottom:10px;">✍️ 내 답변</div>
+          <div class="answer-area">
+            <textarea id="answerInput" placeholder="여기에 답변을 입력하세요. (최대한 실제처럼 답변해보세요)"></textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="submitAnswerBtn">답변 제출 및 다음 질문</button>
+            <button class="btn btn-secondary btn-sm" id="skipBtn">건너뛰기</button>
+          </div>
+        </div>
+
+        <!-- 개별 피드백 -->
+        <div class="feedback-block hidden" id="feedbackBlock">
+          <div class="fb-title">💬 AI 피드백</div>
+          <p id="feedbackText"></p>
+        </div>
+
+        <!-- 최종 결과 -->
+        <div class="card hidden" id="finalCard">
+          <div class="card-title">🏆 면접 종료 — 종합 피드백</div>
+          <div id="finalFeedback" style="font-size:15px;line-height:1.8;color:var(--text-sub);white-space:pre-wrap;"></div>
+          <hr>
+          <div style="color:var(--text-muted);font-size:13px;margin-bottom:14px;">
+            ✅ 면접 피드백이 저장되었습니다. 원본 개인정보(자기소개서 등)는 삭제되었습니다.
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="newInterviewBtn">새 면접 시작</button>
+          </div>
+        </div>
+
       </div>
+    </div>
 
-      <div class="button-row">
-        <button class="clear-btn" id="clearBtn">초기화</button>
-        <button class="make-btn" id="makeBtn">음성 만들기</button>
-      </div>
-
-      <div id="status" class="status"></div>
-
-      <div id="resultBox" class="result-box hidden">
-        <label>🎵 생성된 AI 음성 듣기</label>
-        <audio id="audioPlayer" controls></audio>
-        <div class="button-row">
-          <a id="downloadLink" class="download-link" href="#" download>mp3 파일 다운로드</a>
+    <!-- ──────── 탭3: 면접 기록 ──────── -->
+    <div id="tab-history" class="hidden">
+      <div class="card">
+        <div class="card-title">📂 내 면접 기록</div>
+        <button class="btn btn-secondary btn-sm" id="refreshHistoryBtn" style="margin-bottom:16px;">🔄 새로고침</button>
+        <div id="historyList">
+          <div class="empty-state">
+            <div class="es-icon">📂</div>
+            <p>아직 완료된 면접이 없습니다.<br>면접을 진행하면 피드백이 여기에 저장됩니다.</p>
+          </div>
         </div>
       </div>
     </div>
 
   </div>
+</div>
+
+<!-- 토스트 -->
+<div class="toast" id="toast"></div>
+
+<!-- ════════ Firebase & App Script ════════ -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import {
+  getDatabase,
+  ref,
+  push,
+  set,
+  get,
+  onValue,
+  off
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+
+// ── Firebase 설정 (본인 프로젝트 설정으로 교체하세요) ──
+const firebaseConfig = {
+  apiKey: 'AIzaSyDO-v52Ehwphh5gW0WBzu9_DliMhOzy4Yo',
+  authDomain: 'kang-f4e85.firebaseapp.com',
+  databaseURL: 'https://kang-f4e85-default-rtdb.firebaseio.com',
+  projectId: 'kang-f4e85',
+  storageBucket: 'kang-f4e85.firebasestorage.app',
+  messagingSenderId: '107057126084',
+  appId: '1:107057126084:web:30f7bcb3f25dd2aa4a0791'
+};
+
+// ── Apps Script URL (배포 후 교체하세요) ──
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwXpfF0QOwJ-9KDj_uVolV0LaG68FtxkC7Hgu-QERFPewa2Gxcnp7n6X8jySivzasAx_w/exec';
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getDatabase(app);
+
+// ═══════════════════════════════════ 상태 ═══
+let currentUser = null;
+let sessionData = {
+  questions: [],
+  answers: [],
+  feedbacks: [],
+  currentIndex: 0,
+  company: '',
+  role: '',
+  interviewType: '',
+  voice: 'onyx',
+  totalQ: 5,
+  active: false
+};
+
+// ═══════════════════════════════════ DOM 참조 ═══
+const $ = id => document.getElementById(id);
+const loginScreen  = $('loginScreen');
+const appScreen    = $('appScreen');
+const loginEmail   = $('loginEmail');
+const loginPassword = $('loginPassword');
+const loginBtn     = $('loginBtn');
+const signupBtn    = $('signupBtn');
+const logoutBtn    = $('logoutBtn');
+const headerEmail  = $('headerEmail');
+
+// ═══════════════════════════════════ 인증 ═══
+signupBtn.addEventListener('click', async () => {
+  const email = loginEmail.value.trim();
+  const pw    = loginPassword.value.trim();
+  if (!email || !pw) return showToast('이메일과 비밀번호를 입력해주세요.');
+  if (pw.length < 6) return showToast('비밀번호는 6자리 이상이어야 합니다.');
+  try {
+    signupBtn.disabled = true;
+    await createUserWithEmailAndPassword(auth, email, pw);
+    showToast('회원가입 완료! 자동으로 로그인됩니다.');
+  } catch (e) {
+    showToast(firebaseErrMsg(e.code));
+  } finally {
+    signupBtn.disabled = false;
+  }
+});
+
+loginBtn.addEventListener('click', async () => {
+  const email = loginEmail.value.trim();
+  const pw    = loginPassword.value.trim();
+  if (!email || !pw) return showToast('이메일과 비밀번호를 입력해주세요.');
+  try {
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = '<span class="spinner"></span>';
+    await signInWithEmailAndPassword(auth, email, pw);
+  } catch (e) {
+    showToast(firebaseErrMsg(e.code));
+  } finally {
+    loginBtn.disabled = false;
+    loginBtn.innerHTML = '🔐 로그인';
+  }
+});
+
+logoutBtn.addEventListener('click', async () => {
+  await signOut(auth);
+  sessionData.active = false;
+});
+
+onAuthStateChanged(auth, user => {
+  currentUser = user;
+  if (user) {
+    loginScreen.classList.add('hidden');
+    appScreen.classList.remove('hidden');
+    headerEmail.textContent = user.email;
+    loadHistory();
+  } else {
+    loginScreen.classList.remove('hidden');
+    appScreen.classList.add('hidden');
+  }
+});
+
+// ═══════════════════════════════════ 탭 ═══
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    ['prepare', 'interview', 'history'].forEach(t => {
+      $(`tab-${t}`).classList.toggle('hidden', t !== tab);
+    });
+    if (tab === 'history') loadHistory();
+  });
+});
+
+// ═══════════════════════════════════ 면접 시작 ═══
+$('startInterviewBtn').addEventListener('click', async () => {
+  const company  = $('prepCompany').value.trim();
+  const role     = $('prepRole').value.trim();
+  const selfIntro = $('prepSelfIntro').value.trim();
+  const extra    = $('prepExtra').value.trim();
+  const type     = $('prepType').value;
+  const qCount   = parseInt($('prepQCount').value);
+  const voice    = $('prepVoice').value;
+
+  if (!company || !role) return showToast('회사명과 직무를 입력해주세요.');
+  if (!selfIntro) return showToast('자기소개서 내용을 입력해주세요.');
+
+  const btn = $('startInterviewBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> AI 질문 생성 중...';
+
+  try {
+    // AI에 질문 생성 요청
+    const questions = await generateQuestions({ company, role, selfIntro, extra, type, qCount });
+
+    // 세션 초기화 (개인정보는 메모리에만, DB에는 저장 안 함)
+    sessionData = {
+      questions,
+      answers: [],
+      feedbacks: [],
+      currentIndex: 0,
+      company, role, interviewType: type,
+      voice, totalQ: qCount,
+      active: true
+    };
+
+    // 면접 탭으로 이동
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-tab="interview"]').classList.add('active');
+    ['prepare', 'interview', 'history'].forEach(t => {
+      $(`tab-${t}`).classList.toggle('hidden', t !== 'interview');
+    });
+
+    setupInterviewUI();
+    showQuestion(0);
+
+    showToast(`${qCount}개 질문 생성 완료! 면접을 시작합니다.`);
+
+  } catch (e) {
+    showToast('질문 생성 실패: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '🎤 면접 시작하기';
+  }
+});
+
+// ═══════════════════════════════════ AI 질문 생성 ═══
+async function generateQuestions({ company, role, selfIntro, extra, type, qCount }) {
+  const prompt = `당신은 ${company}의 ${type} 면접관입니다.
+아래 지원자 정보를 참고하여, ${role} 포지션에 딱 맞는 면접 질문 ${qCount}개를 생성하세요.
+
+[지원자 자기소개서 요약]
+${selfIntro}
+
+${extra ? `[추가 참고 사항]\n${extra}` : ''}
+
+조건:
+- 각 질문은 실제 면접에서 쓸 수 있는 구체적이고 날카로운 질문이어야 합니다.
+- 지원자 개인 정보를 반영한 맞춤형 질문을 포함하세요.
+- ${type} 면접 스타일에 맞는 질문이어야 합니다.
+- 반드시 JSON 배열 형식으로만 응답하세요. 예: ["질문1","질문2","질문3"]
+- JSON 외 어떤 텍스트도 포함하지 마세요.`;
+
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify({ type: 'chat', question: prompt, model: 'gpt-4o-mini' })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+
+  const raw = data.answer.trim().replace(/```json|```/g, '').trim();
+  const arr = JSON.parse(raw);
+  if (!Array.isArray(arr)) throw new Error('질문 파싱 오류');
+  return arr.slice(0, qCount);
+}
+
+// ═══════════════════════════════════ 면접 UI 초기화 ═══
+function setupInterviewUI() {
+  $('interviewReady').classList.add('hidden');
+  $('interviewArea').style.display = 'block';
+  $('finalCard').classList.add('hidden');
+  $('feedbackBlock').classList.add('hidden');
+
+  // 단계 표시 점
+  const indicator = $('stepIndicator');
+  indicator.innerHTML = sessionData.questions.map((_, i) =>
+    `<div class="step-dot" id="dot-${i}"></div>`
+  ).join('');
+
+  $('qCounter').textContent = `0 / ${sessionData.totalQ}`;
+}
+
+// ═══════════════════════════════════ 질문 표시 ═══
+function showQuestion(index) {
+  const q = sessionData.questions[index];
+  if (!q) return;
+
+  sessionData.currentIndex = index;
+
+  // 상태 표시
+  $('statusDot').classList.add('live');
+  $('statusText').textContent = '면접 진행 중 — 질문을 잘 들어보세요.';
+  $('qCounter').textContent = `${index + 1} / ${sessionData.totalQ}`;
+
+  // 단계 점 업데이트
+  for (let i = 0; i < sessionData.questions.length; i++) {
+    const dot = $(`dot-${i}`);
+    if (!dot) continue;
+    dot.className = 'step-dot';
+    if (i < index) dot.classList.add('done');
+    else if (i === index) dot.classList.add('current');
+  }
+
+  // 질문 버블
+  $('qNum').textContent = `Q${index + 1}`;
+  $('qText').textContent = q;
+  $('qBubble').classList.remove('hidden');
+
+  // TTS 바 표시
+  $('ttsBar').classList.remove('hidden');
+  $('ttsAudio').removeAttribute('src');
+
+  // 답변 칸 표시
+  $('answerCard').classList.remove('hidden');
+  $('answerInput').value = '';
+  $('feedbackBlock').classList.add('hidden');
+
+  // 자동 TTS 재생
+  playTTS(q);
+}
+
+// ═══════════════════════════════════ TTS ═══
+$('ttsPlayBtn').addEventListener('click', () => {
+  const q = sessionData.questions[sessionData.currentIndex];
+  if (q) playTTS(q);
+});
+
+async function playTTS(text) {
+  const btn = $('ttsPlayBtn');
+  const model = $('ttsModel').value;
+  btn.disabled = true;
+  btn.textContent = '⏳ 생성 중...';
+
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        type: 'tts',
+        text,
+        model,
+        voice: sessionData.voice,
+        speed: 1.0
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    const audioUrl = base64ToAudioUrl(data.audioBase64, 'audio/mpeg');
+    const audio = $('ttsAudio');
+    audio.src = audioUrl;
+    audio.play();
+    btn.textContent = '▶ 다시 듣기';
+  } catch (e) {
+    showToast('음성 생성 실패: ' + e.message);
+    btn.textContent = '▶ 질문 듣기';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function base64ToAudioUrl(b64, mime) {
+  const bytes = atob(b64);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return URL.createObjectURL(new Blob([arr], { type: mime }));
+}
+
+// ═══════════════════════════════════ 답변 제출 ═══
+$('submitAnswerBtn').addEventListener('click', () => submitAnswer(false));
+$('skipBtn').addEventListener('click', () => submitAnswer(true));
+
+async function submitAnswer(skip) {
+  const answer = skip ? '(건너뜀)' : $('answerInput').value.trim();
+  if (!skip && !answer) return showToast('답변을 입력해주세요.');
+
+  const btn = $('submitAnswerBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> AI 피드백 생성 중...';
+
+  const q = sessionData.questions[sessionData.currentIndex];
+  sessionData.answers.push(answer);
+
+  // 개별 피드백 생성
+  let feedback = '';
+  if (!skip) {
+    try {
+      feedback = await generateFeedback(q, answer, sessionData.company, sessionData.role);
+    } catch (e) {
+      feedback = '피드백 생성 중 오류가 발생했습니다.';
+    }
+  }
+  sessionData.feedbacks.push(feedback);
+
+  // 피드백 표시
+  if (!skip && feedback) {
+    $('feedbackText').textContent = feedback;
+    $('feedbackBlock').classList.remove('hidden');
+  }
+
+  // 다음 질문 또는 종료
+  const nextIndex = sessionData.currentIndex + 1;
+  if (nextIndex < sessionData.questions.length) {
+    btn.disabled = false;
+    btn.textContent = '답변 제출 및 다음 질문';
+
+    if (!skip && feedback) {
+      // 피드백 확인 후 다음 질문 버튼으로 교체
+      btn.textContent = '다음 질문 →';
+      btn.onclick = () => {
+        btn.onclick = null;
+        btn.textContent = '답변 제출 및 다음 질문';
+        $('submitAnswerBtn').addEventListener('click', () => submitAnswer(false));
+        showQuestion(nextIndex);
+      };
+    } else {
+      showQuestion(nextIndex);
+    }
+  } else {
+    // 면접 종료
+    btn.disabled = false;
+    btn.textContent = '답변 제출 및 다음 질문';
+    await finishInterview();
+  }
+}
+
+// ═══════════════════════════════════ 개별 피드백 생성 ═══
+async function generateFeedback(question, answer, company, role) {
+  const prompt = `당신은 ${company} ${role} 면접 전문 코치입니다.
+다음 면접 질문과 지원자 답변을 평가해주세요.
+
+[질문] ${question}
+[답변] ${answer}
+
+답변의 강점, 개선점, 그리고 더 좋은 답변 방향을 2~3문장으로 간결하게 피드백해주세요.
+한국어로, 친절하고 건설적인 어조로 작성하세요.`;
+
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify({ type: 'chat', question: prompt, model: 'gpt-4o-mini' })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data.answer;
+}
+
+// ═══════════════════════════════════ 면접 종료 ═══
+async function finishInterview() {
+  $('statusDot').classList.remove('live');
+  $('statusText').textContent = '면접 완료 — 종합 피드백 생성 중...';
+  $('answerCard').classList.add('hidden');
+  $('ttsBar').classList.add('hidden');
+  $('feedbackBlock').classList.add('hidden');
+
+  // 종합 피드백 생성
+  let finalFeedback = '';
+  try {
+    const summaryPrompt = `당신은 면접 전문 코치입니다.
+지원자가 ${sessionData.company} ${sessionData.role} ${sessionData.interviewType} 면접을 완료했습니다.
+
+아래는 전체 질문과 답변입니다:
+${sessionData.questions.map((q, i) =>
+  `Q${i+1}: ${q}\nA${i+1}: ${sessionData.answers[i] || '(건너뜀)'}`
+).join('\n\n')}
+
+전체 면접을 종합적으로 평가하여:
+1. 전반적인 인상과 강점
+2. 보완이 필요한 부분
+3. 최종 조언
+
+위 3가지를 포함한 종합 피드백을 작성해주세요. 친절하고 구체적으로, 한국어로 작성하세요.`;
+
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ type: 'chat', question: summaryPrompt, model: 'gpt-4o-mini' })
+    });
+    const data = await res.json();
+    finalFeedback = data.answer || '종합 피드백 생성 실패';
+  } catch (e) {
+    finalFeedback = '종합 피드백 생성 중 오류가 발생했습니다.';
+  }
+
+  // Firebase에 피드백만 저장 (개인정보 제외)
+  if (currentUser) {
+    try {
+      const recordRef = ref(db, `users/${currentUser.uid}/interviews`);
+      const newRef = push(recordRef);
+      await set(newRef, {
+        company:       sessionData.company,
+        role:          sessionData.role,
+        interviewType: sessionData.interviewType,
+        questionCount: sessionData.totalQ,
+        feedbacks:     sessionData.feedbacks,
+        finalFeedback,
+        createdAt:     new Date().toLocaleString('ko-KR')
+        // ⬆ 자기소개서, 생기부 등 개인정보는 저장하지 않음
+      });
+    } catch (e) {
+      console.error('저장 오류:', e);
+    }
+  }
+
+  // 단계 점 모두 완료
+  for (let i = 0; i < sessionData.questions.length; i++) {
+    const dot = $(`dot-${i}`);
+    if (dot) dot.className = 'step-dot done';
+  }
+
+  $('statusText').textContent = '면접 완료!';
+  $('finalFeedback').textContent = finalFeedback;
+  $('finalCard').classList.remove('hidden');
+  $('qBubble').classList.add('hidden');
+
+  sessionData.active = false;
+}
+
+// ═══════════════════════════════════ 새 면접 ═══
+$('newInterviewBtn').addEventListener('click', () => {
+  sessionData.active = false;
+  $('interviewArea').style.display = 'none';
+  $('interviewReady').classList.remove('hidden');
+  $('finalCard').classList.add('hidden');
+
+  // 준비 탭으로
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('[data-tab="prepare"]').classList.add('active');
+  ['prepare','interview','history'].forEach(t => {
+    $(`tab-${t}`).classList.toggle('hidden', t !== 'prepare');
+  });
+});
+
+// ═══════════════════════════════════ 면접 기록 ═══
+let historyRef = null;
+
+async function loadHistory() {
+  if (!currentUser) return;
+  const listEl = $('historyList');
+  listEl.innerHTML = '<div class="empty-state"><div class="es-icon">⏳</div><p>불러오는 중...</p></div>';
+
+  try {
+    const snap = await get(ref(db, `users/${currentUser.uid}/interviews`));
+    const data = snap.val();
+
+    if (!data) {
+      listEl.innerHTML = `
+        <div class="empty-state">
+          <div class="es-icon">📂</div>
+          <p>아직 완료된 면접이 없습니다.<br>면접을 진행하면 피드백이 여기에 저장됩니다.</p>
+        </div>`;
+      return;
+    }
+
+    const entries = Object.entries(data).reverse();
+    listEl.innerHTML = entries.map(([id, item]) => `
+      <div class="history-item">
+        <div class="hi-header">
+          <div>
+            <div class="hi-company">${escH(item.company)} · ${escH(item.role)}</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${escH(item.interviewType)} 면접 · ${item.questionCount}문항</div>
+          </div>
+          <div class="hi-date">${escH(item.createdAt)}</div>
+        </div>
+        <div style="font-size:13px;color:var(--text-sub);line-height:1.7;white-space:pre-wrap;">${escH(item.finalFeedback || '')}</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    listEl.innerHTML = '<div class="empty-state"><p>기록을 불러오지 못했습니다.</p></div>';
+  }
+}
+
+$('refreshHistoryBtn').addEventListener('click', loadHistory);
+
+// ═══════════════════════════════════ 유틸 ═══
+function escH(t) {
+  return String(t||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+function showToast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function firebaseErrMsg(code) {
+  const map = {
+    'auth/email-already-in-use': '이미 가입된 이메일입니다.',
+    'auth/invalid-email': '이메일 형식이 올바르지 않습니다.',
+    'auth/weak-password': '비밀번호는 6자리 이상이어야 합니다.',
+    'auth/user-not-found': '가입되지 않은 이메일입니다.',
+    'auth/wrong-password': '비밀번호가 올바르지 않습니다.',
+    'auth/invalid-credential': '이메일 또는 비밀번호를 확인해주세요.',
+    'auth/network-request-failed': '네트워크 연결을 확인해주세요.',
+  };
+  return map[code] || `오류: ${code}`;
+}
+
+// 엔터키 로그인
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const id = document.activeElement.id;
+  if (id === 'loginEmail' || id === 'loginPassword') loginBtn.click();
+});
+</script>
 </body>
 </html>
